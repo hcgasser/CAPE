@@ -1,7 +1,4 @@
 # Folders to ignore
-artefacts/
-input/
-raw/
 .idea/
 *.egg-info/
 **/build/
@@ -10,11 +7,3 @@ raw/
 
 # Filetypes to ignore
 *.pyc
-*.pdb
-*.db
-*.pickle
-*.fasta
-*.log
-*.csv
-*.tsv
-*.tmp

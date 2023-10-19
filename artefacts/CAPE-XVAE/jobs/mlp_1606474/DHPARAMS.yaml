@@ -1,0 +1,9 @@
+BLOCK_SIZE: '220'
+CLS: CAPE.datasets.FastaDS
+DVERSION: '"full"'
+FOLDER: '"HIV_nef_full"'
+MAX_SEQ_LEN: '219'
+TEST: '"HIV_nef_full/TEST.fasta"'
+TRAIN: '"HIV_nef_full/TRAIN.fasta"'
+VAL: '"HIV_nef_full/VAL.fasta"'
+WEIGHTED: 'True'

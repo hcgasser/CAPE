@@ -1,0 +1,6 @@
+HANDLER: '"modify"'
+ID: '"immunize"'
+MHCs: '"HLA-A*02:01+HLA-A*24:02+HLA-B*07:02+HLA-B*39:01+HLA-C*07:01+HLA-C*16:01"'
+MODEL_ID: '"mlp_1606474:last"'
+MODPARAMS: '"modparams"'
+SEQ: '"natural"'
