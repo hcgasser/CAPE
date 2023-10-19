@@ -1,0 +1,21 @@
+###### Requirements without Version Specifiers ######
+numpy
+pandas
+biopandas
+pyyaml
+colorama
+tqdm
+matplotlib
+seaborn
+statsmodels
+scikit-learn
+optuna
+biopython
+notebook
+py3Dmol
+pytest
+pytorch-lightning
+python-dotenv
+regex
+absl-py==1.0.0
+docker==5.0.0

@@ -1,0 +1,7 @@
+---
+ ID: "'data_raw_to_input'"
+ HANDLER: "'data'"
+ DATA: "INPUT"  # "'HIV_nef'"
+ DHPARAMS: "os.path.join(G.ENV.PROJECT, 'configs', G.PROJECT, 'dhparams', f'{this.DATA}.yaml')"
+
+

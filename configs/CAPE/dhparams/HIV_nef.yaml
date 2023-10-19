@@ -1,0 +1,26 @@
+# this file describes the data
+# the global paths defined in the environment yaml (e.g. ${PF}/env/py.yaml) can be 
+# accessed via e.g. G.RAW
+
+---  # information for the dataset
+ CLS: 'CAPE.datasets.FastaDS'
+ FOLDER: '"HIV_nef_full"'  # relative to G.ENV.INPUT
+ TRAIN: 'os.path.join(this.FOLDER, "TRAIN.fasta")'  # relative to G.ENV.INPUT
+ VAL: 'os.path.join(this.FOLDER, "VAL.fasta")'  # relative to G.ENV.INPUT
+ TEST: 'os.path.join(this.FOLDER, "TEST.fasta")'  # relative to G.ENV.INPUT
+ BLOCK_SIZE: "G.MHPARAMS.BLOCK_SIZE"
+ WEIGHTED: "True"
+---  # information to convert raw data into input data
+ CLS: 'CAPE.datasets.FastaDS'
+ RAW_PATH: "os.path.join(G.ENV.RAW, 'HIV-1_nef.fasta')"
+ SEED: "42"
+ FILTER:
+   LENGTH:  # only sequences between these lengths will be considered
+     MIN: "200"
+     MAX: "220"
+ SPLIT:  # which proportion of split to use for TRAIN/VAL/TEST
+   TRAIN: "0.9"
+   VAL: "0.05"
+   TEST: "'*'"
+   PREDICT: "None"
+ INPUT_FOLDER: 'join(G.ENV.INPUT, "HIV_nef_full")'

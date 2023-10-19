@@ -1,0 +1,5 @@
+---
+ ID: "'ls'"
+ HANDLER: "'hyp'"
+ STORAGE: "f'sqlite:///{G.ENV.ARTEFACTS_SHARED}{os.sep}hyp.db'"
+ DIRECTION: "'minimize'"

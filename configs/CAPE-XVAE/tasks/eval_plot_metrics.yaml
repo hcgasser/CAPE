@@ -1,0 +1,8 @@
+---
+ ID: "'eval_plot_metrics'"
+ HANDLER: "'eval'"
+ JOB: "INPUT"
+ X: "'epoch'"
+ X_SCALE: "'linear'"
+ Y: "INPUT"
+ Y_SCALE: "'log'"
