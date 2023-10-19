@@ -1,0 +1,19 @@
+---
+ CLS: 'CAPE.XVAE.models.CapeTransformerXVAE'
+ N_LATENTS: '1'
+ D_LATENT: '32'
+ LAMBDA: '1.0'
+ EPOCHS_AE: '500'
+ EPOCHS_ANNEAL: '250'
+ D_MODEL: '256'
+ D_FFD: '512'
+ N_HEADS: '8'
+ N_LAYERS: 'kwargs["trial"].suggest_categorical("N_LAYERS", [1, 2, 3, 4, 5])'
+ BLOCK_SIZE: '220'
+ DROPOUT: 'kwargs["trial"].suggest_float("DROPOUT", 0., 4e-1)'
+ LR: 'kwargs["trial"].suggest_float("LR", 1e-4, 1e-2, log=True)'  # learning rate
+ WEIGHT_DECAY: '0.0'
+ BATCH_SIZE: '32'
+ SEED: '42'
+ DECODER_INPUT: '"ZNX"'   # non-separated: "Z" for latent variable, "X" for original sequence, "N" for next position to predict
+ PERMUTATE: 'True'  # whether or not to permutate the generated auto-regressive outputs of the decoder (N needs to be set in DECODER_INPUT)

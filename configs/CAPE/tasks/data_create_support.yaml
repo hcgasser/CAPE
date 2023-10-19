@@ -1,0 +1,6 @@
+---
+ ID: "'create_support'"
+ HANDLER: "'data'"
+ DATA: "INPUT"
+ DHPARAMS: "os.path.join(G.PROJECT_ENV.CONFIG, 'dhparams', f'{this.DATA}.yaml')"
+ N_SUPPORTS: "300"

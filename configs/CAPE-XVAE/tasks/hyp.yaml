@@ -1,0 +1,12 @@
+---
+ ID: "'hyp'"
+ HANDLER: "'hyp'"
+ STORAGE: "f'sqlite:///{G.ENV.ARTEFACTS_SHARED}{os.sep}hyp.db'"
+ DIRECTION: "'minimize'"
+ MODEL: 'INPUT'  # "'XVAE_nef_32'"
+ DATA: 'INPUT'  # "'HIV_nef'"
+ MHPARAMS: "os.path.join(G.ENV.PROJECT, 'configs', G.PROGRAM, 'mhparams', f'{this.MODEL}.yaml')"
+ DHPARAMS: "os.path.join(G.ENV.PROJECT, 'configs', G.PROJECT, 'dhparams', f'{this.DATA}.yaml')"
+ MAX_EPOCHS: '1500'
+ METRIC: "'VAL_loss'"
+ 

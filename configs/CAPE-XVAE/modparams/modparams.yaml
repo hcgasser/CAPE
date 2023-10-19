@@ -1,0 +1,15 @@
+---
+ N_SEQS: '64'
+ PREDICTOR_MHC_I:
+   NAME: "'PWM'"
+   FOLDER: "os.path.join(G.ENV.INPUT, 'pwm')"
+   LIMIT: "0.02"
+   LENGTHS: "[8, 9, 10]"
+ N_EPISODES: "100"
+ ALPHA: "0.001"
+ TEMPERATURE:
+   START: "1.2"
+   END: "0.1"
+ MAX_SIGMA: "2"
+ EVAL:
+   EPISODES: "10"
