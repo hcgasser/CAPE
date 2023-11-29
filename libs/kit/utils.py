@@ -1,3 +1,5 @@
+""" Utility functions for the kit library """
+
 import os
 import importlib
 import tempfile
@@ -5,7 +7,7 @@ from contextlib import contextmanager
 
 
 def get_class(classname):
-    """ returns the class object for the given class name
+    """returns the class object for the given class name
 
     :param classname: name of the class
     :return: class object
@@ -14,7 +16,7 @@ def get_class(classname):
     parts = classname.split(".")
     if len(parts) > 1:
         importlib.import_module(parts[0])
-        module = ".".join([part for part in parts[:-1]])
+        module = ".".join(parts[:-1])
         module = importlib.import_module(module)
         classname = f"module.{parts[-1]}"
 
@@ -23,9 +25,20 @@ def get_class(classname):
 
 @contextmanager
 def temp_working_directory(dir_path=None):
-    try:
-        original_cwd_path = os.getcwd()
+    """Context manager for a temporary working directory
 
+    Will change the current working directory to a temporary directory
+    if no directory path is given. Otherwise, it will change the current
+    working directory to the given directory path.
+
+    When the context manager exits, the current working directory is
+    changed back to the original working directory.
+
+    :param dir_path: path to the directory to change to
+    """
+
+    original_cwd_path = os.getcwd()
+    try:
         if dir_path is None:
             with tempfile.TemporaryDirectory() as tmp_dir_path:
                 os.chdir(tmp_dir_path)

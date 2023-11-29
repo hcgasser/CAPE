@@ -22,19 +22,17 @@ external
 │   │   └── muscle5.1.linux_intel64
 │   ├── netMHCpan
 │   │   ├── data.tar.gz
-│   │   ├── netMHCpan-4.1b.Linux.tar.gz
-│   │   └── tmp
+│   │   └── netMHCpan-4.1b.Linux.tar.gz
 │   ├── rosetta
 │   │   └── 3.13
 │   │       └── rosetta_bin_linux_3.13_bundle.tgz
 │   └── TMalign
 │       ├── readme.c++.txt
-│       ├── TMalign
 │       └── TMalign.cpp
 └── TransFun (subtree not shown)
 ```
 
-To install the following programs in the container, please follow the below in the container (``. ${PF}/setup/setup_external.sh``).
+To install the following programs in the container, please follow the below in the container (``make external``).
 
 # Rosetta
 

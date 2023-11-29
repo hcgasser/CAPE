@@ -7,60 +7,141 @@ from kit.log import log_info
 from kit.path import join
 
 
-predictors_structure = ['AF', 'ESM']
-predictors_go_function = ['TransFun']
+predictors_structure = ["AF", "ESM"]
+predictors_go_function = ["TransFun"]
 
 
-def file_to_seq_hashes(file_path):
+def file_to_seq_hashes(file_path, encoding="utf-8"):
     if not os.path.exists(file_path):
         raise Exception(f"{file_path} does not exist")
-    
-    with open(file_path, 'r') as f:
+
+    with open(file_path, "r", encoding=encoding) as f:
         seq_hashes = f.read()
 
-    return [seq_hash for seq_hash in seq_hashes.split('\n') if seq_hash != '']
+    return [seq_hash for seq_hash in seq_hashes.split("\n") if seq_hash != ""]
 
 
-def seq_hashes_to_file(seq_hashes, file_path, append=False):
+def seq_hashes_to_file(seq_hashes, file_path, append=False, encoding="utf-8"):
     text = "".join([f"{seq_hash}\n" for seq_hash in seq_hashes])
-    str_to_file(text, file_path, append)
+    str_to_file(text, file_path, append, encoding=encoding)
 
 
-def copy_info(seq_hash_file_path, source_loch_path, target_loch_path, cp_sequence=True, cp_structure=True, cp_dynamics=True, cp_function=True):
+def copy_info(
+    seq_hash_file_path,
+    source_dir_path,
+    target_dir_path,
+    cp_sequence=True,
+    cp_structure=True,
+    cp_dynamics=True,
+    cp_function=True,
+    source_is_loch_path=True,
+    target_is_loch_path=True,
+):
     seq_hashes = file_to_seq_hashes(seq_hash_file_path)
+
+    infos = ["sequences", "structures", "dynamics", "function"]
+
+    src_paths = {
+        info: (
+            os.path.join(source_dir_path, info)
+            if source_is_loch_path
+            else source_dir_path
+        )
+        for info in infos
+    }
+    tgt_paths = {
+        info: (
+            os.path.join(target_dir_path, info)
+            if target_is_loch_path
+            else target_dir_path
+        )
+        for info in infos
+    }
 
     c_fastas, c_pdb, c_dynamics, c_function = 0, 0, 0, 0
     for seq_hash in tqdm(seq_hashes):
         if cp_sequence:
-            source_file_path = os.path.join(source_loch_path, 'sequences', f"{seq_hash}.fasta")
+            source_file_path = os.path.join(src_paths["sequences"], f"{seq_hash}.fasta")
             if os.path.exists(source_file_path):
-                shutil.copyfile(source_file_path, join(target_loch_path, 'sequences', f"{seq_hash}.fasta"))
+                shutil.copyfile(
+                    source_file_path,
+                    join(tgt_paths["sequences"], f"{seq_hash}.fasta"),
+                )
                 c_fastas += 1
 
         if cp_structure:
             for predictor_structure in predictors_structure:
-                source_file_path = os.path.join(source_loch_path, 'structures', predictor_structure, 'pdb', f"{seq_hash}_{predictor_structure}.pdb")
+                source_file_path = os.path.join(
+                    src_paths["structures"],
+                    predictor_structure,
+                    "pdb",
+                    f"{seq_hash}_{predictor_structure}.pdb",
+                )
                 if os.path.exists(source_file_path):
-                    shutil.copyfile(source_file_path, join(target_loch_path, 'structures', predictor_structure, 'pdb', f"{seq_hash}_{predictor_structure}.pdb"))
+                    shutil.copyfile(
+                        source_file_path,
+                        join(
+                            tgt_paths["structures"],
+                            predictor_structure,
+                            "pdb",
+                            f"{seq_hash}_{predictor_structure}.pdb",
+                        ),
+                    )
                     c_pdb += 1
 
-                source_file_path = os.path.join(source_loch_path, 'structures', predictor_structure, 'pkl', f"{seq_hash}.pkl")
+                source_file_path = os.path.join(
+                    src_paths["structures"],
+                    predictor_structure,
+                    "pkl",
+                    f"{seq_hash}.pkl",
+                )
                 if os.path.exists(source_file_path):
-                    shutil.copyfile(source_file_path, join(target_loch_path, 'structures', predictor_structure, 'pkl', f"{seq_hash}.pkl"))
+                    shutil.copyfile(
+                        source_file_path,
+                        join(
+                            tgt_paths["structures"],
+                            predictor_structure,
+                            "pkl",
+                            f"{seq_hash}.pkl",
+                        ),
+                    )
 
         if cp_dynamics:
             for predictor_structure in predictors_structure:
-                source_dir_path = os.path.join(source_loch_path, 'dynamics', f"{seq_hash}_{predictor_structure}")
+                source_dir_path = os.path.join(
+                    src_paths["dynamics"], f"{seq_hash}_{predictor_structure}"
+                )
                 if os.path.exists(source_dir_path):
-                    shutil.copytree(source_dir_path, join(target_loch_path, 'dynamics', f"{seq_hash}_{predictor_structure}"))
+                    shutil.copytree(
+                        source_dir_path,
+                        join(
+                            tgt_paths["dynamics"],
+                            f"{seq_hash}_{predictor_structure}",
+                        ),
+                    )
                     c_dynamics += 1
 
         if cp_function:
             for predictor_structure in predictors_structure:
                 for predictor_go_function in predictors_go_function:
-                    source_file_path = os.path.join(source_loch_path, 'function', 'GO', predictor_go_function, f"{seq_hash}_{predictor_structure}.txt")
+                    source_file_path = os.path.join(
+                        src_paths["function"],
+                        "GO",
+                        predictor_go_function,
+                        f"{seq_hash}_{predictor_structure}.txt",
+                    )
                     if os.path.exists(source_file_path):
-                        shutil.copyfile(source_file_path, join(target_loch_path, 'function', 'GO', predictor_go_function, f"{seq_hash}_{predictor_structure}.txt"))
+                        shutil.copyfile(
+                            source_file_path,
+                            join(
+                                tgt_paths["function"],
+                                "GO",
+                                predictor_go_function,
+                                f"{seq_hash}_{predictor_structure}.txt",
+                            ),
+                        )
                         c_function += 1
 
-    log_info(f"Copied {c_fastas} fastas, {c_pdb} pdbs, {c_dynamics} dynamics, {c_function} functions")
+    log_info(
+        f"Copied {c_fastas} fastas, {c_pdb} pdbs, {c_dynamics} dynamics, {c_function} functions"
+    )

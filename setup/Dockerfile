@@ -18,6 +18,7 @@ RUN echo "root:${PASSWORD}" | chpasswd && \
     apt-get install -y sudo && \
     apt-get install -y gcc g++ && \
     apt-get install -y wget curl unzip git && \
+    apt-get install -y make && \
     apt-get install -y vim tmux
 
 COPY . ${PF}

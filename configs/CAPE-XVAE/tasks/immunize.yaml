@@ -1,9 +1,0 @@
----
- ID: "'immunize'"
- HANDLER: "'modify'"
- MODEL_ID: 'INPUT'
- SEQ: 'INPUT'
- MHCs: 'INPUT'
- MODPARAMS: 'INPUT'
- RESULTS:
-  TO_LOCH: "True"

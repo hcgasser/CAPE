@@ -1,7 +1,7 @@
 ---
  ID: "'eval_plot_metrics'"
  HANDLER: "'eval'"
- JOB: "INPUT"
+ MODEL_ID: "INPUT"
  X: "'epoch'"
  X_SCALE: "'linear'"
  Y: "INPUT"

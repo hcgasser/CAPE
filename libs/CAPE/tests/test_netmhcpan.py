@@ -1,41 +1,130 @@
+import os
+import random
+import subprocess
+import tempfile
+from collections import defaultdict
+
 import kit
 import kit.globals as G
 from kit.path import join
 from kit.data import str_to_file
-from kit.bioinf.mhc import get_predictor
-from kit.bioinf.mhc.netMHCpan import to_HLA_netMHCpan, interpret_netMHCpan_output
-import random
-import subprocess
-import tempfile
-import os
-from collections import defaultdict
-
+from kit.bioinf.immuno.mhc_1 import Mhc1Predictor
+from kit.bioinf.immuno.mhc_1._netmhcpan import (
+    to_netmhcpan_allele_name,
+    interpret_netmhcpan_output,
+)
 
 kit.init("CAPE", "CAPE-Eval", create_job=False)
 
 
-seq = 'MGGKWSKSSIVGCPAVRERMRRAEEPAAEGVGAASRDLEKHGAITSSNTAANNADCAWLEAQEEEEVGFPVRPQVPLRPMTYKGAVDLSHFLKEKGGLEGLIHSKKRQEILDLWVYHTQGYFPDWQNYTPGPGIRYPLTFGWCFKLVPVDPEEVEEANEGENNCLLHPMCQHGMEDEEREVLKWKFDSRLAHRHMAREKHPEFYKDC'
-MHCs = ['HLA-A*02:01', 'HLA-A*24:02', 'HLA-B*07:02', 'HLA-B*39:01', 'HLA-C*07:01', 'HLA-C*16:01']
+TEST_SEQ = (
+    "MGGKWSKSSIVGCPAVRERMRRAEEPAAEGVGAASRDLEKHGAITSSNTAANNADCAWLEAQEEEEVGFPVRPQVPLRPMTY"
+    "KGAVDLSHFLKEKGGLEGLIHSKKRQEILDLWVYHTQGYFPDWQNYTPGPGIRYPLTFGWCFKLVPVDPEEVEEANEGENNC"
+    "LLHPMCQHGMEDEEREVLKWKFDSRLAHRHMAREKHPEFYKDC"
+)
+
+MHC_1_ALLELEs = [
+    "HLA-A*02:01",
+    "HLA-A*24:02",
+    "HLA-B*07:02",
+    "HLA-B*39:01",
+    "HLA-C*07:01",
+    "HLA-C*16:01",
+]
 # lengths: 8,9,10
 
+PREDICTOR_MHC_1_CLASS = "Mhc1PredictorNetMhcPan"  # which presentation predictor to use to assessment of visibility
+PREDICTOR_MHC_1_LIMIT = 2
 
-expected_strong_binders = {
-    'HLA-A*02:01': ['KLVPVDPEEV'],
-    'HLA-A*24:02': ['RYPLTFGWCF', 'GYFPDWQNY', 'VYHTQGYF', 'RYPLTFGW'],
-    'HLA-B*07:02': ['GFPVRPQVPL', 'VRPQVPLRPM', 'TPGPGIRYPL', 'FPVRPQVPL', 'RPQVPLRPM', 'RPMTYKGAV', 'GPGIRYPL'],
-    'HLA-B*39:01': ['FPVRPQVPL', 'IHSKKRQEI', 'MEDEEREVL'],
-    'HLA-C*07:01': ['KRQEILDLW', 'GYFPDWQNY', 'YTPGPGIRY', 'IRYPLTFGW', 'MAREKHPEF', 'AREKHPEFY'],
-    'HLA-C*16:01': ['QVPLRPMTY', 'GAVDLSHFL', 'HSKKRQEIL', 'YTPGPGIRY', 'MAREKHPEF'],
+PREDICTOR_MHC_1 = Mhc1Predictor.get_predictor(PREDICTOR_MHC_1_CLASS)(
+    data_dir_path=join(
+        G.ENV.PROJECT, "artefacts", "immunology", "netMHCpan", "percentile"
+    ),
+    limit=PREDICTOR_MHC_1_LIMIT / 100,
+    mhc_1_alleles_to_load=MHC_1_ALLELEs,
+)
+
+
+EXPECTED_STRONG_BINDERS = {
+    "HLA-A*02:01": ["KLVPVDPEEV"],
+    "HLA-A*24:02": ["RYPLTFGWCF", "GYFPDWQNY", "VYHTQGYF", "RYPLTFGW"],
+    "HLA-B*07:02": [
+        "GFPVRPQVPL",
+        "VRPQVPLRPM",
+        "TPGPGIRYPL",
+        "FPVRPQVPL",
+        "RPQVPLRPM",
+        "RPMTYKGAV",
+        "GPGIRYPL",
+    ],
+    "HLA-B*39:01": ["FPVRPQVPL", "IHSKKRQEI", "MEDEEREVL"],
+    "HLA-C*07:01": [
+        "KRQEILDLW",
+        "GYFPDWQNY",
+        "YTPGPGIRY",
+        "IRYPLTFGW",
+        "MAREKHPEF",
+        "AREKHPEFY",
+    ],
+    "HLA-C*16:01": ["QVPLRPMTY", "GAVDLSHFL", "HSKKRQEIL", "YTPGPGIRY", "MAREKHPEF"],
 }
 
 
-expected_weak_binders = {
-    'HLA-A*02:01': ['GAVDLSHFL', 'ILDLWVYHT', 'GMEDEEREV'],
-    'HLA-A*24:02': ['LWVYHTQGYF', 'QGYFPDWQNY', 'NYTPGPGIRY', 'KRQEILDLW', 'PGIRYPLTF', 'IRYPLTFGW', 'MAREKHPEF'],
-    'HLA-B*07:02': ['FPVRPQVPLR', 'RPQVPLRPMT', 'LRPMTYKGAV', 'RPMTYKGAVD', 'GPGIRYPLTF', 'MAREKHPEF', 'CPAVRERM', 'PVRPQVPL', 'PQVPLRPM', 'VPLRPMTY', 'RPMTYKGA', 'HPMCQHGM'],
-    'HLA-B*39:01': ['SRDLEKHGAI', 'SHFLKEKGGL', 'IHSKKRQEIL', 'SRDLEKHGA', 'LHPMCQHGM', 'EREVLKWKF'],
-    'HLA-C*07:01': ['VRPQVPLRPM', 'NYTPGPGIRY', 'MAREKHPEFY', 'VGFPVRPQV', 'QVPLRPMTY', 'GAVDLSHFL', 'IHSKKRQEI', 'HSKKRQEIL', 'EREVLKWKF', 'KRQEILDL', 'SRLAHRHM', 'AREKHPEF'],
-    'HLA-C*16:01': ['HMAREKHPEF', 'MAREKHPEFY', 'SSIVGCPAV', 'VGFPVRPQV', 'MTYKGAVDL', 'HSKKRQEI'],
+EXPECTED_WEAK_BINDERS = {
+    "HLA-A*02:01": ["GAVDLSHFL", "ILDLWVYHT", "GMEDEEREV"],
+    "HLA-A*24:02": [
+        "LWVYHTQGYF",
+        "QGYFPDWQNY",
+        "NYTPGPGIRY",
+        "KRQEILDLW",
+        "PGIRYPLTF",
+        "IRYPLTFGW",
+        "MAREKHPEF",
+    ],
+    "HLA-B*07:02": [
+        "FPVRPQVPLR",
+        "RPQVPLRPMT",
+        "LRPMTYKGAV",
+        "RPMTYKGAVD",
+        "GPGIRYPLTF",
+        "MAREKHPEF",
+        "CPAVRERM",
+        "PVRPQVPL",
+        "PQVPLRPM",
+        "VPLRPMTY",
+        "RPMTYKGA",
+        "HPMCQHGM",
+    ],
+    "HLA-B*39:01": [
+        "SRDLEKHGAI",
+        "SHFLKEKGGL",
+        "IHSKKRQEIL",
+        "SRDLEKHGA",
+        "LHPMCQHGM",
+        "EREVLKWKF",
+    ],
+    "HLA-C*07:01": [
+        "VRPQVPLRPM",
+        "NYTPGPGIRY",
+        "MAREKHPEFY",
+        "VGFPVRPQV",
+        "QVPLRPMTY",
+        "GAVDLSHFL",
+        "IHSKKRQEI",
+        "HSKKRQEIL",
+        "EREVLKWKF",
+        "KRQEILDL",
+        "SRLAHRHM",
+        "AREKHPEF",
+    ],
+    "HLA-C*16:01": [
+        "HMAREKHPEF",
+        "MAREKHPEFY",
+        "SSIVGCPAV",
+        "VGFPVRPQV",
+        "MTYKGAVDL",
+        "HSKKRQEI",
+    ],
 }
 
 
@@ -47,47 +136,45 @@ def get_result_weak_binders(result, allele):
     return [p[0] for p in result if p[1] == allele and 0.005 < p[2] <= 0.02]
 
 
-predictor_MHC_I_class = 'netMHCpan'  # which presentation predictor to use to assessment of visibility
-predictor_MHC_I_limit = 2
-MHCs = ['HLA-A*02:01', 'HLA-A*24:02', 'HLA-B*07:02', 'HLA-B*39:01', 'HLA-C*07:01', 'HLA-C*16:01']
+def test_netmhcpan():
+    result = PREDICTOR_MHC_1.seq_presented(TEST_SEQ, MHC_1_ALLELEs)
 
-
-predictor_MHC_I = get_predictor(predictor_MHC_I_class)(
-    join(G.ENV.PROJECT, 'artefacts', 'immunology', 'netMHCpan', 'percentile'), 
-    limit=predictor_MHC_I_limit/100,
-    MHC_I_alleles_to_load=MHCs
-)
-
-
-def test_netMHCpan():
-    result = predictor_MHC_I.seq_presented(seq, MHCs)
-
-    for allele in MHCs:
+    for allele in MHC_1_ALLELEs:
         allele_result = set(get_result_strong_binders(result, allele))
-        allele_expected = set(expected_strong_binders[allele])
+        allele_expected = set(EXPECTED_STRONG_BINDERS[allele])
         assert len(allele_result.symmetric_difference(allele_expected)) == 0
 
         allele_result = set(get_result_weak_binders(result, allele))
-        allele_expected = set(expected_weak_binders[allele])
+        allele_expected = set(EXPECTED_WEAK_BINDERS[allele])
         assert len(allele_result.symmetric_difference(allele_expected)) == 0
 
 
-def test_netMHCpan_random():
+def test_netmhcpan_random():
     percentiles = defaultdict(lambda: {})
-    allele = random.choice(MHCs)
-    peptides_selected = random.choices(list(predictor_MHC_I.percentiles[allele]), k=10000)
+    allele = random.choice(MHC_1_ALLELEs)
+    peptides_selected = random.choices(
+        list(PREDICTOR_MHC_1.percentiles[allele]), k=10000
+    )
     cwd = os.getcwd()
     with tempfile.TemporaryDirectory() as tmp_folder:
         os.chdir(tmp_folder)
-        str_to_file("\n".join(peptides_selected), f"temporary.pep")
-        result = subprocess.run(["netMHCpan", f"-p temporary.pep", f"-a {to_HLA_netMHCpan(allele)}"],
-                                capture_output=True)
+        str_to_file("\n".join(peptides_selected), "temporary.pep")
+        result = subprocess.run(
+            [
+                "netMHCpan",
+                "-p temporary.pep",
+                f"-a {to_netmhcpan_allele_name(allele)}",
+            ],
+            capture_output=True,
+        )
         os.chdir(cwd)
-        interpret_netMHCpan_output(result.stdout.decode('UTF-8').split("\n"), percentiles)
+        interpret_netmhcpan_output(
+            result.stdout.decode("UTF-8").split("\n"), percentiles
+        )
 
     same = True
     for peptide in peptides_selected:
-        if predictor_MHC_I.percentiles[allele][peptide] != percentiles[allele][peptide]:
+        if PREDICTOR_MHC_1.percentiles[allele][peptide] != percentiles[allele][peptide]:
             same = False
             break
 

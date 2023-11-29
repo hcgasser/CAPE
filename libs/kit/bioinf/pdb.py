@@ -1,8 +1,10 @@
+"""This module contains functions for working with PDB files"""
+
 from Bio import PDB
 
 
 def pdb_to_seqs(file_path):
-    """ reads a PDB file and returns the sequence """
+    """reads a PDB file and returns the sequence"""
     parser = PDB.PDBParser()
     structure = parser.get_structure("X", file_path)
     seqs_mod = []
