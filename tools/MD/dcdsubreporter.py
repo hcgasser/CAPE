@@ -29,6 +29,7 @@ OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE
 USE OR OTHER DEALINGS IN THE SOFTWARE.
 """
 from __future__ import absolute_import
+
 __author__ = "Peter Eastman"
 __version__ = "1.0"
 
@@ -45,7 +46,9 @@ class DCDSubReporter(object):
     To use it, create a DCDReporter, then add it to the Simulation's list of reporters.
     """
 
-    def __init__(self, file, reportInterval, atom_indices, append=False, enforcePeriodicBox=None):
+    def __init__(
+        self, file, reportInterval, atom_indices, append=False, enforcePeriodicBox=None
+    ):
         """Create a DCDReporter.
 
         Parameters
@@ -67,9 +70,9 @@ class DCDSubReporter(object):
         self._append = append
         self._enforcePeriodicBox = enforcePeriodicBox
         if append:
-            mode = 'r+b'
+            mode = "r+b"
         else:
-            mode = 'wb'
+            mode = "wb"
         self._out = open(file, mode)
         self._dcd = None
 
@@ -90,7 +93,7 @@ class DCDSubReporter(object):
             energies respectively.  The final element specifies whether
             positions should be wrapped to lie in a single periodic box.
         """
-        steps = self._reportInterval - simulation.currentStep%self._reportInterval
+        steps = self._reportInterval - simulation.currentStep % self._reportInterval
         return (steps, True, False, False, False, self._enforcePeriodicBox)
 
     def report(self, simulation, state):
@@ -106,10 +109,24 @@ class DCDSubReporter(object):
 
         if self._dcd is None:
             self._dcd = DCDSubFile(
-                self._out, simulation.topology, simulation.integrator.getStepSize(), self._atom_indices,
-                simulation.currentStep, self._reportInterval, self._append
+                self._out,
+                simulation.topology,
+                simulation.integrator.getStepSize(),
+                self._atom_indices,
+                simulation.currentStep,
+                self._reportInterval,
+                self._append,
             )
-        self._dcd.writeModel(nanometer*np.array([np.array(state.getPositions(asNumpy=True)[x]) for x in self._atom_indices]), periodicBoxVectors=state.getPeriodicBoxVectors())
+        self._dcd.writeModel(
+            nanometer
+            * np.array(
+                [
+                    np.array(state.getPositions(asNumpy=True)[x])
+                    for x in self._atom_indices
+                ]
+            ),
+            periodicBoxVectors=state.getPeriodicBoxVectors(),
+        )
 
     def __del__(self):
         self._out.close()

@@ -1,11 +1,12 @@
 ---
  N_SEQS: '64'
  PREDICTOR_MHC_I:
-   NAME: "'PWM'"
-   FOLDER: "os.path.join(G.ENV.INPUT, 'pwm')"
+   NAME: "'Mhc1PredictorPwm'"
+   FOLDER: "os.path.join(G.ENV.INPUT, 'immuno', 'mhc_1', 'MhcPredictorPwm', 'pwm')"
    LIMIT: "0.02"
    LENGTHS: "[8, 9, 10]"
  N_EPISODES: "100"
+ SEQ_ENC_STOCHASTIC: 'OPTIONAL:True'
  ALPHA: "0.001"
  TEMPERATURE:
    START: "1.2"

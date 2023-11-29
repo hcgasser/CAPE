@@ -1,10 +1,10 @@
 ---
  ID: "'generate'"
  HANDLER: "'generate'"
- MODEL_ID: 'INPUT'
+ CKPT_ID: 'INPUT'
  N_SEQS: 'INPUT'
- OUTPUT_FOLDER_PATH: 'INPUT'       # generated fasta files folder: None / absolute path 
- SEQ_HASH_FILE_PATH: 'INPUT'  # file which saves the seq hashes: None / absolute path 
  CLEAN: 'INPUT'  # whether or not to clean the output sequences (remove impossible tokens and stop at first stop token)
  RESULTS:
    TO_LOCH: 'True'
+   OUTPUT_FOLDER_PATH: 'OPTIONAL:None'  # generated fasta files folder: None / absolute path 
+   SEQ_HASH_FILE_PATH: 'OPTIONAL:None'  # file which saves the seq hashes: None / absolute path 

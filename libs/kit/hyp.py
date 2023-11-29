@@ -1,13 +1,21 @@
 #!/usr/bin/env python
 
-import optuna
+""" Hyperparameter optimization framework based on optuna """
+
+
 import importlib
 import subprocess
 import argparse
 from datetime import datetime
+import optuna
+
+
+args, args_unknown = None, None
 
 
 def ls_studies(storage):
+    """lists all studies in the database"""
+
     study_summaries = optuna.study.get_all_study_summaries(storage=storage)
     text = f"{'Study Name':<50s} {'N-Trials':>10s} {'Best':>5s}\n"
     for study_summary in study_summaries:
@@ -21,16 +29,42 @@ def ls_studies(storage):
     print(text)
 
 
+def get_study(storage, study_name, direction="min"):
+    """returns a study from the database"""
+
+    study = optuna.create_study(
+        study_name=study_name,
+        storage=storage,
+        load_if_exists=True,
+        direction=f"{direction}imize",
+    )
+    setattr(study, "storage", storage)
+    return study
+
+
+def rm_study(study):
+    """removes a study from the database"""
+
+    optuna.delete_study(study_name=study.study_name, storage=study.storage)
+
+
 def ls_trials(study, hparams=None, ascending=None):
+    """lists all trials in a study"""
+
     trials = [(trial.value, trial) for trial in study.trials]
     if ascending is not None:
-        trials = sorted(trials, key=lambda x: x[0] if x[0] is not None else (float('inf') if ascending else float('-inf')))
-    for value, trial in trials:
+        trials = sorted(
+            trials,
+            key=lambda x: x[0]
+            if x[0] is not None
+            else (float("inf") if ascending else float("-inf")),
+        )
+    for _, trial in trials:
         print_trial(trial, hparams)
 
 
 def print_trial(trial, hparams=None, show_date=False, show_intermediate=False):
-    """ prints a trial in a nice format
+    """prints a trial in a nice format
 
     :param trial: the trial to be printed
     :param hparams: the hyperparameters to be printed (if None, all are printed)
@@ -41,59 +75,79 @@ def print_trial(trial, hparams=None, show_date=False, show_intermediate=False):
 
     params = ""
 
-    datetime_start = trial.user_attrs['datetime_start'] if 'datetime_start' in trial.user_attrs else trial.datetime_start.timestamp()
-    datetime_complete = trial.user_attrs['datetime_complete'] if 'datetime_complete' in trial.user_attrs else (
-                        trial.datetime_complete.timestamp() if trial.datetime_complete is not None else None)
+    datetime_start = (
+        trial.user_attrs["datetime_start"]
+        if "datetime_start" in trial.user_attrs
+        else trial.datetime_start.timestamp()
+    )
+    datetime_complete = (
+        trial.user_attrs["datetime_complete"]
+        if "datetime_complete" in trial.user_attrs
+        else (
+            trial.datetime_complete.timestamp()
+            if trial.datetime_complete is not None
+            else None
+        )
+    )
     if datetime_complete is not None:
-        duration = (datetime.fromtimestamp(datetime_complete) - datetime.fromtimestamp(datetime_start)).total_seconds()
+        duration = (
+            datetime.fromtimestamp(datetime_complete)
+            - datetime.fromtimestamp(datetime_start)
+        ).total_seconds()
     else:
         duration = None
 
     for key, value in trial.params.items():
         if not hparams or (key in hparams):
-            params += f"{key}: {f'{value:4}' if isinstance(value, int) else f'{value:8.2e}'} "
+            params += (
+                f"{key}: {f'{value:4}' if isinstance(value, int) else f'{value:8.2e}'} "
+            )
 
-    text = (f"V: {trial.value:.3f} " if trial.value is not None else "V: ----- ")
+    text = f"V: {trial.value:.3f} " if trial.value is not None else "V: ----- "
     if show_intermediate:
         text += f"({len(trial.intermediate_values):2}) "
     text += f"{str(trial.state).split('.')[1]:8} "
     if show_date:
         text += f"{datetime.fromtimestamp(datetime_start).strftime('%Y-%m-%d %H:%M')}, "
-    text += (f"{duration/3600:4.1f} h, " if duration is not None else "---- h, ")
+    text += f"{duration/3600:4.1f} h, " if duration is not None else "---- h, "
     # text += f"{trial.number:3,} "
     text += f"{trial.number:<4} "
-    text += f"{trial.user_attrs['JOB.ID']:<12s} " if 'JOB.ID' in trial.user_attrs else f"{'':<12s} "
+    text += (
+        f"{trial.user_attrs['JOB.ID']:<12s} "
+        if "JOB.ID" in trial.user_attrs
+        else f"{'':<12s} "
+    )
     text += f"\n\t{params}"
     print(text)
 
 
-def get_study(storage, study_name, direction="min"):
-    study = optuna.create_study(
-        study_name=study_name,
-        storage=storage,
-        load_if_exists=True,
-        direction=f"{direction}imize"
-    )
-    setattr(study, "storage", storage)
-    return study
-
-
-def rm_study(study):
-    optuna.delete_study(study_name=study.study_name, storage=study.storage)
-
-
 def cp_trial(trial, params="NA", value="NA"):
-    params = trial.params if params == "NA" else params
-    value, state = (trial.value, trial.state) if value == "NA" else (value, optuna.trial._state.TrialState.COMPLETE)
+    """copies a trial"""
 
-    datetime_start = trial.user_attrs["datetime_start"] if "datetime_start" in trial.user_attrs else trial.datetime_start
-    datetime_complete = trial.user_attrs["datetime_complete"] if "datetime_complete" in trial.user_attrs else trial.datetime_complete
+    params = trial.params if params == "NA" else params
+    # pylint: disable=protected-access
+    value, state = (
+        (trial.value, trial.state)
+        if value == "NA"
+        else (value, optuna.trial._state.TrialState.COMPLETE)
+    )
+
+    datetime_start = (
+        trial.user_attrs["datetime_start"]
+        if "datetime_start" in trial.user_attrs
+        else trial.datetime_start
+    )
+    datetime_complete = (
+        trial.user_attrs["datetime_complete"]
+        if "datetime_complete" in trial.user_attrs
+        else trial.datetime_complete
+    )
     user_attrs = trial.user_attrs
-    user_attrs['datetime_start'] = datetime_start.timestamp()
+    user_attrs["datetime_start"] = datetime_start.timestamp()
     if datetime_complete is not None:
-        user_attrs['datetime_complete'] = datetime_complete.timestamp()
+        user_attrs["datetime_complete"] = datetime_complete.timestamp()
     else:
-        user_attrs['datetime_complete'] = None
+        user_attrs["datetime_complete"] = None
 
     return optuna.trial.create_trial(
         params=params,
@@ -101,11 +155,13 @@ def cp_trial(trial, params="NA", value="NA"):
         value=value,
         intermediate_values=trial.intermediate_values,
         user_attrs=user_attrs,
-        state=state
+        state=state,
     )
 
 
-def cp_study(study, study_name, adjust_trials=[]):
+def cp_study(study, study_name, adjust_trials=()):
+    """copies a study"""
+
     old_trials = study.get_trials()
     keep_trials = []
 
@@ -124,6 +180,16 @@ def cp_study(study, study_name, adjust_trials=[]):
 
 
 def new_trial(x):
+    """runs a trial
+
+    The call argument specifies a python function to call with the cli arguments and
+    the trial; this function returns the parameters to subprocess.run as result.
+    The last line of the output of the subprocess is interpreted as the result of
+    the trial. If the last line is "ERROR", the trial is considered
+    failed and None is returned. Otherwise, the last line is interpreted as a float
+    and returned.
+    """
+
     global args, args_unknown
 
     x.set_user_attr("JOB.ID", args.job)
@@ -133,9 +199,9 @@ def new_trial(x):
     module = importlib.import_module(".".join(module))
     run_params = getattr(module, function)(args, x)
     print(f"Run: {run_params}")
-    result = subprocess.run(run_params, capture_output=True)
+    result = subprocess.run(run_params, capture_output=True, check=False)
     print("Finished")
-    result = result.stdout.decode('UTF-8').split("\n")[-1]
+    result = result.stdout.decode("UTF-8").split("\n")[-1]
     if result != "ERROR":
         result = float(result)
 
@@ -143,18 +209,41 @@ def new_trial(x):
     return result
 
 
+def main():
+    """main function"""
+
+    study = get_study(args.storage, args.study, args.direction)
+    study.optimize(new_trial, n_trials=1)
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--call", type=str, default="",
-                        help="python function to call, that takes as input the arguments and the trial and returns the parameters to subprocess.run as result")
-    parser.add_argument("--storage", type=str, default=r"sqlite:///hyp.db",
-                        help="the path of the hyperparameter database")
-    parser.add_argument("--study", type=str, default="hyp", help="the name of the study")
-    parser.add_argument("--direction", type=str, default="min", help="the direction to optimize the value to (min/max)")
+    parser.add_argument(
+        "--call",
+        type=str,
+        default="",
+        help=(
+            "python function to call with the cli arguments and the trial; "
+            "returns the parameters to subprocess.run as result"
+        ),
+    )
+    parser.add_argument(
+        "--storage",
+        type=str,
+        default=r"sqlite:///hyp.db",
+        help="the path of the hyperparameter database",
+    )
+    parser.add_argument(
+        "--study", type=str, default="hyp", help="the name of the study"
+    )
+    parser.add_argument(
+        "--direction",
+        type=str,
+        default="min",
+        help="the direction to optimize the value to (min/max)",
+    )
     parser.add_argument("--job", type=str, default="", help="the job number")
     parser.add_argument("--env", type=str, default="py")
     args, args_unknown = parser.parse_known_args()
 
-    study = get_study(args.storage, args.study, args.direction)
-
-    study.optimize(new_trial, n_trials=1)
+    main()

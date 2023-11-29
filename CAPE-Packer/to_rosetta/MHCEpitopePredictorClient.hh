@@ -89,17 +89,16 @@ public:
 	void load_matrix(std::string const &filename);
 
 	/// @brief Sets the threshold for what is considered to be an epitope -- top thresh% of peptides in this implementation
-	void set_thresh(core::Real thresh);
+	void set_rewards(core::Real reward_artificial, core::Real reward_natural);
 	void set_alleles(std::string alleles);
 
-	/// @brief Gets the threshold for what is considered to be an epitope -- top thresh% of peptides in this implementation
-	core::Real get_thresh() { return thresh_; }
 
 	int sock = 0;
 
 private:
 	/// @brief The threshold for what is considered to be an epitope -- top thresh% of peptides in this implementation
-	core::Real thresh_ = 2.;
+	core::Real reward_artificial_ = 1.;
+	core::Real reward_natural_ = 1.;
 	std::vector<std::string> alleles_;
 
 	/// @brief A flag to indicate that the matrix is a propred matrix

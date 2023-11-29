@@ -8,7 +8,8 @@
  TRAIN: 'os.path.join(this.FOLDER, "TRAIN.fasta")'  # relative to G.ENV.INPUT
  VAL: 'os.path.join(this.FOLDER, "VAL.fasta")'  # relative to G.ENV.INPUT
  TEST: 'os.path.join(this.FOLDER, "TEST.fasta")'  # relative to G.ENV.INPUT
- BLOCK_SIZE: "G.MHPARAMS.BLOCK_SIZE"
+ BLOCK_SIZE: "G.MHPARAMS.BLOCK_SIZE"  # tells the dataset how many tokens to serve
+ MAX_SEQ_LEN: "220"  # tells CAPE how many tokens to generate
  WEIGHTED: "True"
 ---  # information to convert raw data into input data
  CLS: 'CAPE.datasets.FastaDS'

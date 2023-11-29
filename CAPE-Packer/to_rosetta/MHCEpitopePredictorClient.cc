@@ -143,9 +143,6 @@ bool MHCEpitopePredictorClient::operator==(MHCEpitopePredictor const &other)
 	MHCEpitopePredictorClient const *o = dynamic_cast<MHCEpitopePredictorClient const *>(&other);
 	if ( !o ) return false;
 
-	if ( o->propred_ != propred_ ) return false;
-	if ( o->thresh_ != thresh_ ) return false;
-
 	return true;
 }
 
@@ -154,7 +151,7 @@ std::string MHCEpitopePredictorClient::report() const
 	std::stringstream output("");
 
 	// TODO: more (allele names, ...)?
-	output << "Client predictor; " << alleles_.size() << " alleles; threshold " << thresh_;
+	output << "Client predictor; " << alleles_.size() << " alleles; rewards art: " << reward_artificial_ << " nat: " << reward_natural_;
 
 	return output.str();
 }
@@ -173,8 +170,11 @@ core::Real MHCEpitopePredictorClient::score(std::string const &pep)
 		char buffer[1024] = {0};
 		char peptide[256];
 		char allele[256];
+		char rewards[128];
 
 		strcpy(peptide, pep.c_str());
+
+		std::snprintf(rewards, sizeof(rewards), "%f,%f", reward_artificial_, reward_natural_);
 
         // std::cout << "Send peptide: " << peptide << std::endl;
 		// Convert the request object to a JSON string
@@ -188,6 +188,8 @@ core::Real MHCEpitopePredictorClient::score(std::string const &pep)
             json_object_array_put_idx(alleles_array, i, json_object_new_string(allele));
         }
         json_object_object_add(jobj, "alleles", alleles_array);
+
+		json_object_object_add(jobj, "rewards", json_object_new_string(rewards));
 		const char* json_str = json_object_to_json_string(jobj);
 
         // std::cout << "Send request to server" << std::endl;
@@ -208,15 +210,9 @@ core::Real MHCEpitopePredictorClient::score(std::string const &pep)
 
 /// @brief Sets the threshold for what is considered to be an epitope -- top thresh% of peptides in this implementation
 /// @details Includes error checking in the propred matrix case to make sure we get a reasonable threshold
-void MHCEpitopePredictorClient::set_thresh(core::Real thresh) {
-	if ( propred_ ) {
-		if ( thresh < 1 || thresh > 10 || (core::Size)thresh != thresh ) {
-			TR.Error << "A propred matrix must have an integer threshold between 1-10." << std::endl;
-			TR.Error << "The score corresponding to these thresholds are explicitly given the matrix." << std::endl;
-			utility_exit_with_message( "The threshold of " + std::to_string(thresh) + " that you have selected is invalid." );
-		}
-	}
-	thresh_ = thresh;
+void MHCEpitopePredictorClient::set_rewards(core::Real reward_artificial, core::Real reward_natural) {
+	reward_artificial_ = reward_artificial;
+	reward_natural_ = reward_natural;
 }
 
 }//ns mhc_epitope_energy
@@ -253,8 +249,8 @@ template< class Archive >
 void
 core::scoring::mhc_epitope_energy::MHCEpitopePredictorClient::save( Archive & arc ) const {
 	arc( cereal::base_class< core::scoring::mhc_epitope_energy::MHCEpitopePredictor >( this ) );
-	arc( CEREAL_NVP( thresh_ ) ); // core::Real
-	arc( CEREAL_NVP( propred_ ) ); // _Bool
+	arc( CEREAL_NVP( reward_artificial_ ) ); // core::Real
+	arc( CEREAL_NVP( reward_natural_ ) ); // core::Real
 }
 
 /// @brief Automatically generated deserialization method
@@ -262,8 +258,8 @@ template< class Archive >
 void
 core::scoring::mhc_epitope_energy::MHCEpitopePredictorClient::load( Archive & arc ) {
 	arc( cereal::base_class< core::scoring::mhc_epitope_energy::MHCEpitopePredictor >( this ) );
-	arc( thresh_ ); // core::Real
-	arc( propred_ ); // _Bool
+	arc( reward_artificial_ ); // core::Real
+	arc( reward_natural_ ); // core::Real
 }
 
 SAVE_AND_LOAD_SERIALIZABLE( core::scoring::mhc_epitope_energy::MHCEpitopePredictorClient );

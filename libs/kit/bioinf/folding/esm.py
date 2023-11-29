@@ -1,15 +1,18 @@
 import os
-import torch
 import tempfile
-from kit.nn import move_dict_to_device
 import warnings
+import subprocess
+
+import torch
+
 from Bio.PDB import PDBParser
 from Bio.PDB.PDBExceptions import PDBConstructionWarning
+
+from kit.nn import move_dict_to_device
 from kit.bioinf.fasta import read_fasta
 from kit.path import get_entries, join
 from kit.log import log_info
 from kit.data import str_to_file
-import subprocess
 
 esm_model, esm_tokenizer = None, None
 warnings.simplefilter("ignore", PDBConstructionWarning)
@@ -29,28 +32,42 @@ def fasta_to_pdb(path, regex=None, online=False):
         filename = filename[-1]
         filename_root = filename.removesuffix(".fasta")
         pdb_filename = os.path.join(dirname, filename_root, filename_root + "_ESM.pdb")
-        if (not os.path.exists(pdb_filename)
-            or os.path.getsize(pdb_filename) < 1000) \
-           and parent_folder != filename_root:
+        if (
+            not os.path.exists(pdb_filename) or os.path.getsize(pdb_filename) < 1000
+        ) and parent_folder != filename_root:
             cnt += 1
             log_info(f"converting {filename} to PDB with ESMFold")
             df = read_fasta(fasta_file, return_df=True)
             seq = df.index[0].translate(str.maketrans("", "", "*-"))
             if online:
-                command = ['curl', f'-X', 'POST', '--data', seq, 'https://api.esmatlas.com/foldSequence/v1/pdb/']
-                result = subprocess.run(command, capture_output=True)
-                pdb = result.stdout.decode('utf-8')
-                str_to_file(pdb, join(dirname, filename_root, filename_root + "_ESM.pdb"))
+                command = [
+                    "curl",
+                    "-X",
+                    "POST",
+                    "--data",
+                    seq,
+                    "https://api.esmatlas.com/foldSequence/v1/pdb/",
+                ]
+                result = subprocess.run(command, capture_output=True, check=False)
+                pdb = result.stdout.decode("utf-8")
+                str_to_file(
+                    pdb, join(dirname, filename_root, filename_root + "_ESM.pdb")
+                )
             else:
                 outputs = sharded_forward(seq)
                 pdb = convert_outputs_to_pdb(filename_root, outputs)
-                str_to_file("\n".join(pdb), join(dirname, filename_root, filename_root + "_ESM.pdb"))
+                str_to_file(
+                    "\n".join(pdb),
+                    join(dirname, filename_root, filename_root + "_ESM.pdb"),
+                )
 
     return cnt
 
 
 # adjusted from transformers.models.esm.modeling_esmfold.EsmForProteinFolding.forward
-def sharded_forward(seq, attention_mask=None, position_ids=None, masking_pattern=None, num_recycles=None):
+def sharded_forward(
+    seq, attention_mask=None, position_ids=None, masking_pattern=None, num_recycles=None
+):
     global esm_model, esm_tokenizer
 
     from transformers import AutoTokenizer, EsmForProteinFolding
@@ -58,11 +75,11 @@ def sharded_forward(seq, attention_mask=None, position_ids=None, masking_pattern
         compute_predicted_aligned_error,
         compute_tm,
         make_atom14_masks,
-        to_pdb,
-        OFProtein,
-        atom14_to_atom37
     )
-    from transformers.models.esm.modeling_esmfold import categorical_lddt, EsmCategoricalMixture, EsmForProteinFoldingOutput
+    from transformers.models.esm.modeling_esmfold import (
+        categorical_lddt,
+        EsmForProteinFoldingOutput,
+    )
 
     if esm_tokenizer is None:
         esm_tokenizer = AutoTokenizer.from_pretrained("facebook/esmfold_v1")
@@ -70,18 +87,22 @@ def sharded_forward(seq, attention_mask=None, position_ids=None, masking_pattern
         esm_model = EsmForProteinFolding.from_pretrained("facebook/esmfold_v1")
         esm_model.esm = esm_model.esm.half()
 
-    input_ids = esm_tokenizer([seq], return_tensors="pt", add_special_tokens=False)['input_ids'].cuda()
+    input_ids = esm_tokenizer([seq], return_tensors="pt", add_special_tokens=False)[
+        "input_ids"
+    ].cuda()
     with torch.no_grad():
         cfg = esm_model.config.esmfold_config
 
         aa = input_ids  # B x L
-        B = aa.shape[0]
-        L = aa.shape[1]
+        batch_size = aa.shape[0]
+        token_length = aa.shape[1]
         device = input_ids.device
         if attention_mask is None:
             attention_mask = torch.ones_like(aa, device=device)
         if position_ids is None:
-            position_ids = torch.arange(L, device=device).expand_as(input_ids)
+            position_ids = torch.arange(token_length, device=device).expand_as(
+                input_ids
+            )
 
         #
         # move ESM model to GPU
@@ -92,7 +113,9 @@ def sharded_forward(seq, attention_mask=None, position_ids=None, masking_pattern
         esmaa = esm_model.af2_idx_to_esm_idx(aa, attention_mask)
 
         if masking_pattern is not None:
-            masked_aa, esmaa, mlm_targets = esm_model.bert_mask(aa, esmaa, attention_mask, masking_pattern)
+            masked_aa, esmaa, mlm_targets = esm_model.bert_mask(
+                aa, esmaa, attention_mask, masking_pattern
+            )
         else:
             masked_aa = aa
             mlm_targets = None
@@ -130,27 +153,31 @@ def sharded_forward(seq, attention_mask=None, position_ids=None, masking_pattern
         esm_s = (esm_model.esm_s_combine.softmax(0).unsqueeze(0) @ esm_s).squeeze(2)
         s_s_0 = esm_model.esm_s_mlp(esm_s)
 
-        s_z_0 = s_s_0.new_zeros(B, L, L, cfg.trunk.pairwise_state_dim)
+        s_z_0 = s_s_0.new_zeros(
+            batch_size, token_length, token_length, cfg.trunk.pairwise_state_dim
+        )
 
         if esm_model.config.esmfold_config.embed_aa:
             s_s_0 += esm_model.embedding(masked_aa)
 
-        structure: dict = esm_model.trunk(s_s_0, s_z_0, aa, position_ids, attention_mask, no_recycles=num_recycles)
+        structure: dict = esm_model.trunk(
+            s_s_0, s_z_0, aa, position_ids, attention_mask, no_recycles=num_recycles
+        )
         # Documenting what we expect:
         structure = {
             k: v
             for k, v in structure.items()
             if k
-               in [
-                   "s_z",
-                   "s_s",
-                   "frames",
-                   "sidechain_frames",
-                   "unnormalized_angles",
-                   "angles",
-                   "positions",
-                   "states",
-               ]
+            in [
+                "s_z",
+                "s_s",
+                "frames",
+                "sidechain_frames",
+                "unnormalized_angles",
+                "angles",
+                "positions",
+                "states",
+            ]
         }
 
         # Add BERT mask for the loss to use, if available.
@@ -178,15 +205,27 @@ def sharded_forward(seq, attention_mask=None, position_ids=None, masking_pattern
 
         structure["residue_index"] = position_ids
 
-        lddt_head = esm_model.lddt_head(structure["states"]).reshape(structure["states"].shape[0], B, L, -1, esm_model.lddt_bins)
+        lddt_head = esm_model.lddt_head(structure["states"]).reshape(
+            structure["states"].shape[0],
+            batch_size,
+            token_length,
+            -1,
+            esm_model.lddt_bins,
+        )
         structure["lddt_head"] = lddt_head
         plddt = categorical_lddt(lddt_head[-1], bins=esm_model.lddt_bins)
         structure["plddt"] = plddt
 
         ptm_logits = esm_model.ptm_head(structure["s_z"])
         structure["ptm_logits"] = ptm_logits
-        structure["ptm"] = compute_tm(ptm_logits, max_bin=31, no_bins=esm_model.distogram_bins)
-        structure.update(compute_predicted_aligned_error(ptm_logits, max_bin=31, no_bins=esm_model.distogram_bins))
+        structure["ptm"] = compute_tm(
+            ptm_logits, max_bin=31, no_bins=esm_model.distogram_bins
+        )
+        structure.update(
+            compute_predicted_aligned_error(
+                ptm_logits, max_bin=31, no_bins=esm_model.distogram_bins
+            )
+        )
 
         #
         # move remaining network back to the CPU
@@ -200,6 +239,12 @@ def sharded_forward(seq, attention_mask=None, position_ids=None, masking_pattern
 
 
 def convert_outputs_to_pdb(outputs):
+    from transformers.models.esm.openfold_utils import (
+        to_pdb,
+        OFProtein,
+        atom14_to_atom37,
+    )
+
     final_atom_positions = atom14_to_atom37(outputs["positions"][-1], outputs)
     outputs = {k: v.to("cpu").numpy() for k, v in outputs.items()}
     final_atom_positions = final_atom_positions.cpu().numpy()
@@ -224,7 +269,7 @@ def convert_outputs_to_pdb(outputs):
 
 def convert_outputs_to_structure(name, outputs):
     pdb = convert_outputs_to_pdb(outputs)
-    with tempfile.NamedTemporaryFile(mode='w', delete=False) as temp_file:
+    with tempfile.NamedTemporaryFile(mode="w", delete=False) as temp_file:
         temp_filename = temp_file.name
         # Write the string data to the temporary file
         temp_file.write("\n".join(pdb))

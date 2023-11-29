@@ -233,7 +233,7 @@ void MHCEpitopeEnergySetup::setup_predictor( utility::vector1 < std::string > co
 	MHCEpitopePredictorSVMOP pred_svm;
 	
 	// MYADD
-	MHCEpitopePredictorClientOP pred_mhcflurry;
+	MHCEpitopePredictorClientOP pred_client;
 
 	core::scoring::methods::NMerSVMEnergyOP svm; // A NMerSVMEnergy object that is used with the SVM predictor
 
@@ -293,8 +293,8 @@ void MHCEpitopeEnergySetup::setup_predictor( utility::vector1 < std::string > co
 	// MYADD
 	} else if ( method == "Client" ) {
 		firstline >> filename;
-		pred_mhcflurry = MHCEpitopePredictorClientOP(utility::pointer::make_shared<MHCEpitopePredictorClient>(filename));
-		predictor_ = pred_mhcflurry;
+		pred_client = MHCEpitopePredictorClientOP(utility::pointer::make_shared<MHCEpitopePredictorClient>(filename));
+		predictor_ = pred_client;
 	// MYADD: STOP
 		
 	} else if ( method == "external" ) {
@@ -350,7 +350,7 @@ void MHCEpitopeEnergySetup::setup_predictor( utility::vector1 < std::string > co
 			if ( method == "Client" ) {
 				std::string alleles;
 				line >> alleles;
-				pred_mhcflurry->set_alleles(alleles);
+				pred_client->set_alleles(alleles);
 			}
 		} else if ( option == "threshold" && method=="matrix" ) {
 			// If the threshold keyword is used, set the threshold in the predictor.
@@ -359,11 +359,13 @@ void MHCEpitopeEnergySetup::setup_predictor( utility::vector1 < std::string > co
 			pred_matrix->set_thresh(thresh);
 			
 		// MYADD
-		} else if ( option == "threshold" && method=="Client" ) {
-			// If the threshold keyword is used, set the threshold in the predictor.
-			core::Real thresh;
-			line >> thresh;
-			pred_mhcflurry->set_thresh(thresh); 
+		} else if ( option == "rewards" && method=="Client" ) {
+			// If the threshold keyword is used, set the rewards for the predictor.
+			core::Real reward_artificial;
+			core::Real reward_natural;
+			line >> reward_artificial;
+			line >> reward_natural;
+			pred_client->set_rewards(reward_artificial, reward_natural); 
 		// MYADD: STOP
 			
 		} else if ( option == "unseen" && (method=="external" || method=="preloaded") ) {

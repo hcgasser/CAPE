@@ -1,0 +1,11 @@
+[MASTER]
+disable = eval-used, global-statement, too-many-statements, too-many-arguments, too-many-locals, broad-exception-raised, broad-exception-caught, duplicate-code, global-variable-not-assigned, import-outside-toplevel #, missing-docstring
+extension-pkg-whitelist=numpy,torch
+
+[DESIGN]
+good-names = DB, B, T, T_in, C, PWM, PWMs, PWMs_log, Z, Z_base, Z_scale, Zs, W, R, R_samples, N, device, model, trainer, NMDP, RL, Eval, CAPE
+# , line-too-long, trailing-whitespace
+
+[TYPECHECK]
+ignored-modules=numpy,torch,transformers,mhcflurry
+ignored-classes=numpy,torch,transformers,mhcflurry
