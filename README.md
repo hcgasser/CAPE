@@ -58,7 +58,6 @@ At first we set some standard values:
 export DOMAIN="HIV_nef"
 export MHC_Is="HLA-A*02:01+HLA-A*24:02+HLA-B*07:02+HLA-B*39:01+HLA-C*07:01+HLA-C*16:01"
 ```
-We include the ``. tools/set_HIV_nef.sh`` script to set these and the pretrained network
 
 ### Prepare data
 - H: The input data needs to be present in the form of a single fasta file  
@@ -86,9 +85,10 @@ Run the following in the container to generate the MHC Class 1 position weight m
     - The ``--task`` parameter determines which yaml file specifies the task to perform (can be found in ``${PF}/configs/CAPE-XVAE/tasks/``)
     - The ``MODEL`` parameter determines which yaml file specifies the model hyper-parameters (can be found in ``${PF}/configs/CAPE-XVAE/mhparams/``). 
     - Finally, the ``DATA`` parameter determines the yaml file for the data (see "Prepare data")
-- you can list the results with the following command ``cape-xvae.py --domain $DOMAIN --task hyp_ls`` the last column of the first line of each entry states the job id (e.g. py_22).  
+- you can list the results with the following command ``cape-xvae.py --domain $DOMAIN --task hyp_ls`` the last column of the first line of each entry states the <job id> (e.g. py_22). The job's subfolder can be found in ``/CAPE/artefacts/CAPE-XVAE/jobs/<job id>``. Each job has a ``last`` checkpoint. So the corresponding checkpoint id would be ``<job id>:<ckpt>`` (e.g. ``py_12:last``). 
+    - Set the checkpoint id of the best model to an environmental variable (e.g. ``export XVAE_CKPT_ID=py_12:last``). 
+    - Also set the model id (e.g. ``export XVAE_MODEL_ID=py_12``)
 The ckpt id of the pretrained HIV nef model is ``mlp_1606474:last`` and set as ``$XVAE_CKPT_ID`` by ``set_HIV_nef.sh``. Its model is is ``mlp_1606474`` and set as ``$XVAE_MODEL_ID``.
-- The job's subfolder can be found in ``/CAPE/artefacts/CAPE-XVAE/jobs/<job id>``
 
 #### Plot training metrics
 - Training metrics can be plotted by running  
