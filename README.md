@@ -79,6 +79,11 @@ Run the following in the container to generate the MHC Class 1 position weight m
 
 ### CAPE-XVAE
 
+Before generating immune modified sequences, we need to train the VAE model.
+We have attached a model that is pretrained for generating HIV-Nef sequences.
+When using this, you can skip the *hyper-parameter search* step and directly go to *generate sequences*.
+To use this pretrained model you only need to set the following two environment variables: ``export XVAE_MODEL_ID=mlp_1606474`` and ``export XVAE_CKPT_ID=mlp_1606474:last``
+
 #### Hyper-parameter search
 - The following command runs 10 hyper-parameter search experiment. Run as often as you wish. Some hyper-parameter combinations might 'crash' the program (e.g. too large for GPU). In this case just restart.  
 ``for ((i=1; i<=10; i++)); do cape-xvae.py --task hyp --domain ${DOMAIN} --MODEL \"XVAE_nef_32\" --DATA \"HIV_nef\"; done``
@@ -88,7 +93,6 @@ Run the following in the container to generate the MHC Class 1 position weight m
 - you can list the results with the following command ``cape-xvae.py --domain $DOMAIN --task hyp_ls`` the last column of the first line of each entry states the <job id> (e.g. py_22). The job's subfolder can be found in ``/CAPE/artefacts/CAPE-XVAE/jobs/<job id>``. Each job has a ``last`` checkpoint. So the corresponding checkpoint id would be ``<job id>:<ckpt>`` (e.g. ``py_12:last``). 
     - Set the checkpoint id of the best model to an environmental variable (e.g. ``export XVAE_CKPT_ID=py_12:last``). 
     - Also set the model id (e.g. ``export XVAE_MODEL_ID=py_12``)
-The ckpt id of the pretrained HIV nef model is ``mlp_1606474:last`` and set as ``$XVAE_CKPT_ID`` by ``set_HIV_nef.sh``. Its model is is ``mlp_1606474`` and set as ``$XVAE_MODEL_ID``.
 
 #### Plot training metrics
 - Training metrics can be plotted by running  
