@@ -83,6 +83,8 @@ pdb.AF.from_hashes()
                   pdb_file=${temp_dir}/${seq_hash}/${seq_hash}_AF.pdb
                   pkl_file=${temp_dir}/${seq_hash}/result_model.pkl
                   if [ -e "${pdb_file}" ] && [ -e "${pkl_file}" ]; then
+                      mkdir -p ${2}/structures/AF/pdb
+                      mkdir -p ${2}/structures/AF/pkl
                       mv ${pdb_file} ${2}/structures/AF/pdb/${seq_hash}_AF.pdb
                       mv ${pkl_file} ${2}/structures/AF/pkl/${seq_hash}.pkl
                   else
