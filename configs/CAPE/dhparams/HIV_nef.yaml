@@ -24,4 +24,4 @@
    VAL: "0.05"
    TEST: "'*'"
    PREDICT: "None"
- INPUT_FOLDER: 'join(G.ENV.INPUT, "HIV_nef_full")'
+ INPUT_FOLDER: 'os.path.join(G.ENV.INPUT, "HIV_nef_full")'
